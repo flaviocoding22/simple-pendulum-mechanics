@@ -1,87 +1,74 @@
-[README.md](https://github.com/user-attachments/files/28123046/README.md)
-# 🔬 Pêndulo Simples — Conservação de Energia Mecânica
+# 🔭 mechanics-code
 
-Simulação animada de um pêndulo simples com visualização em tempo real da conservação de energia mecânica, desenvolvida em Python com `matplotlib` e `numpy`.
-
----
-
-## 📽️ O que a simulação mostra
-
-| Painel | Descrição |
-|--------|-----------|
-| **Diagrama do Pêndulo** | Animação do bob com rastro gradiente, seta de velocidade e barra de altura |
-| **Energia × Tempo** | Curvas de Eₖ, Eₚ e E_total desenhadas progressivamente |
-| **Espaço de Fases** | Órbita elíptica (θ × ω) com ponto animado |
-| **Ângulo × Tempo** | Oscilação senoidal do ângulo θ |
-| **Proporção de Energia** | Barra dinâmica mostrando % de Eₖ e Eₚ em tempo real |
+Simulações de mecânica clássica desenvolvidas em Python com `numpy` e `matplotlib`.
 
 ---
 
-## ⚙️ Parâmetros da simulação
+## 📁 Estrutura
 
 ```
-Comprimento do fio  →  L  = 1.6 m
-Massa do bob        →  m  = 1.0 kg
-Ângulo inicial      →  θ₀ = 55°
-Gravidade           →  g  = 9.81 m/s²
-Período analítico   →  T  ≈ 2π√(L/g)
+mechanics-code/
+├── pendulo-simples/
+│   ├── pendulo_v1.py   # Simulação estática com gráficos de energia
+│   └── pendulo_v2.py   # Simulação interativa com controles em tempo real
+└── README.md
 ```
 
 ---
 
-## 🧮 Física envolvida
+## 🌀 Pêndulo Simples
 
-A energia mecânica total se conserva na ausência de atrito:
+Simulação animada de um pêndulo simples com visualização da conservação de energia mecânica, integração numérica pelo método RK4 e espaço de fases.
 
-$$E_{mec} = E_k + E_p = \frac{1}{2}mv^2 + mgh = \text{constante}$$
+### Versões
 
-A equação do movimento é integrada numericamente pelo método de **Runge-Kutta de 4ª ordem (RK4)**:
+| Arquivo | Descrição |
+|---|---|
+| `pendulo_v1.py` | Versão inicial — animação + gráficos de Eₖ, Eₚ e E total |
+| `pendulo_v2.py` | Versão interativa — sliders para massa, comprimento, ângulo e gravidade; botão pausar/continuar |
 
-$$\ddot{\theta} = -\frac{g}{L}\sin(\theta)$$
+### Como executar
 
-Sem a aproximação de pequenos ângulos — válido para qualquer amplitude.
-
----
-
-## 🚀 Como executar
-
-### 1. Instale as dependências
-
+**1. Instale as dependências:**
 ```bash
-pip install numpy matplotlib
+pip install numpy matplotlib PyQt5
 ```
 
-> No Spyder: cole `!pip install numpy matplotlib` no console IPython e pressione Enter.
-
-### 2. Execute o script
-
+**2. Execute o script desejado:**
 ```bash
-python pendulo.py
+python pendulo-simples/pendulo_v2.py
 ```
 
-> No Spyder: abra o arquivo e pressione **F5**.
+### Parâmetros configuráveis (v2)
+
+| Parâmetro | Intervalo | Padrão |
+|---|---|---|
+| Comprimento L | 0.3 – 3.0 m | 1.6 m |
+| Massa m | 0.1 – 5.0 kg | 1.0 kg |
+| Ângulo inicial θ₀ | 5° – 85° | 55° |
+| Gravidade g | 1.0 – 25.0 m/s² | 9.81 m/s² |
+
+### Física
+
+A equação de movimento é integrada numericamente pelo método **Runge-Kutta de 4ª ordem (RK4)**:
+
+$$\ddot{\theta} = -\frac{g}{L} \sin(\theta)$$
+
+A energia mecânica total é conservada:
+
+$$E_{mec} = \frac{1}{2}mv^2 + mgh = \text{constante}$$
 
 ---
 
-## 📁 Estrutura do repositório
+## ⚙️ Requisitos
 
-```
-pendulo-energia/
-│
-├── pendulo.py      # Simulação principal
-└── README.md       # Este arquivo
-```
+- Python 3.10+
+- numpy
+- matplotlib
+- PyQt5
 
 ---
 
-## 🛠️ Tecnologias
+## 👤 Autor
 
-- **Python 3.x**
-- **NumPy** — cálculo numérico e integração RK4
-- **Matplotlib** — visualização e animação
-
----
-
-## 📄 Licença
-
-Este projeto é de uso livre para fins educacionais.
+**flaviocoding22** — trabalho do Leopoldo
