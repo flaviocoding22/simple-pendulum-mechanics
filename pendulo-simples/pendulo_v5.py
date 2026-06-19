@@ -21,8 +21,9 @@ Uso:
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from matplotlib.patches import Circle
+from matplotlib.patches import Circle, FancyBboxPatch
 from matplotlib.widgets import Slider, Button
+from matplotlib.collections import LineCollection
 import matplotlib.colors as mcolors
 import matplotlib.patheffects as pe
 
@@ -151,8 +152,8 @@ COL_R_R    = 1.0 - MARGIN_R     # right da coluna direita
 COL_R_W    = COL_R_R - COL_R_X
 
 CTRL_TOP = 0.255   # top do painel de controles (= base do ax_f)
-GAP_EF   = 0.065   # gap vertical entre ax_e (energia) e ax_f (fases), espaço pro título
-GAP_F_CTRL = 0.040 # gap vertical entre ax_f (fases) e o painel de controles, espaço pro xlabel
+GAP_EF   = 0.090   # gap vertical entre ax_e (energia) e ax_f (fases), espaço pro título
+GAP_F_CTRL = 0.060 # gap vertical entre ax_f (fases) e o painel de controles, espaço pro xlabel
 
 ax_f_h = 0.250
 ax_f_y = CTRL_TOP + GAP_F_CTRL
@@ -306,7 +307,11 @@ def _style(ax, title, xl='', yl=''):
     ax.set_title(title, color=MUTED2, fontsize=8, fontweight='bold',
                  pad=5, loc='left')
     ax.set_xlabel(xl, color=MUTED, fontsize=7.5, labelpad=3)
-    ax.set_ylabel(yl, color=MUTED, fontsize=7.5, labelpad=3)
+    # Rótulo do eixo Y na horizontal, no canto superior — evita a colisão
+    # do label rotacionado com o spine quando a coluna do gráfico fica estreita.
+    if yl:
+        ax.text(1.0, 1.02, yl, transform=ax.transAxes,
+                color=MUTED, fontsize=7, ha='right', va='bottom')
     ax.grid(True, alpha=0.6)
     for sp in ax.spines.values():
         sp.set_edgecolor(BORDER2); sp.set_linewidth(0.6)
@@ -400,17 +405,25 @@ def rebuild():
                        width=0.010, headwidth=5, headlength=6,
                        headaxislength=5, zorder=12, alpha=0.80)
 
-    # Caixas de energia (canto superior esquerdo da simulação)
-    box_cfg = dict(boxstyle='round,pad=0.42', lw=0.7, alpha=0.88)
-    ek_lbl = ax_d.text(0.03, 0.97, '', transform=ax_d.transAxes,
-        fontsize=8.5, color=AMBER, fontweight='bold', ha='left', va='top',
-        bbox=dict(**box_cfg, fc='#160A00', ec=AMBER))
-    ep_lbl = ax_d.text(0.03, 0.88, '', transform=ax_d.transAxes,
-        fontsize=8.5, color=TEAL,  fontweight='bold', ha='left', va='top',
-        bbox=dict(**box_cfg, fc='#001610', ec=TEAL))
-    et_lbl = ax_d.text(0.03, 0.79, '', transform=ax_d.transAxes,
-        fontsize=8.5, color=GOLD,  fontweight='bold', ha='left', va='top',
-        bbox=dict(**box_cfg, fc='#141000', ec=GOLD))
+    # Painel único de energia (canto superior direito da simulação)
+    # Linhas alinhadas em colunas (em vez de 3 caixas soltas com larguras
+    # diferentes), com um único contêiner para organizar visualmente.
+    PANEL_W, PANEL_H = 0.225, 0.150
+    PANEL_X, PANEL_Y = 1 - 0.025 - PANEL_W, 0.825
+    e_panel = FancyBboxPatch((PANEL_X, PANEL_Y), PANEL_W, PANEL_H,
+        transform=ax_d.transAxes, boxstyle='round,pad=0.010,rounding_size=0.018',
+        facecolor='#0A0C16', edgecolor=BORDER2, linewidth=0.8, alpha=0.92,
+        zorder=14)
+    ax_d.add_patch(e_panel)
+
+    TXT_X  = PANEL_X + 0.020
+    ROW_Y  = [PANEL_Y + PANEL_H*0.78, PANEL_Y + PANEL_H*0.50, PANEL_Y + PANEL_H*0.22]
+    ek_lbl = ax_d.text(TXT_X, ROW_Y[0], '', transform=ax_d.transAxes,
+        fontsize=7.2, color=AMBER, fontweight='bold', ha='left', va='center', zorder=15)
+    ep_lbl = ax_d.text(TXT_X, ROW_Y[1], '', transform=ax_d.transAxes,
+        fontsize=7.2, color=TEAL,  fontweight='bold', ha='left', va='center', zorder=15)
+    et_lbl = ax_d.text(TXT_X, ROW_Y[2], '', transform=ax_d.transAxes,
+        fontsize=7.2, color=GOLD,  fontweight='bold', ha='left', va='center', zorder=15)
 
     # Info de rodapé dentro da simulação
     t_lbl = ax_d.text(0.50, 0.015, '', transform=ax_d.transAxes,
@@ -443,16 +456,36 @@ def rebuild():
     pad_y = max(0.1, (omega.max()-omega.min()) * 0.14)
     ax_f.set_xlim(th_d.min()-pad_x, th_d.max()+pad_x)
     ax_f.set_ylim(omega.min()-pad_y, omega.max()+pad_y)
-    ax_f.axhline(0, color=BORDER2, lw=0.7, alpha=0.7)
-    ax_f.axvline(0, color=BORDER2, lw=0.7, alpha=0.7)
-    ax_f.plot(th_d, omega, color='#111525', lw=1.2)
+    ax_f.axhline(0, color=BORDER2, lw=0.8, alpha=0.6, zorder=2)
+    ax_f.axvline(0, color=BORDER2, lw=0.8, alpha=0.6, zorder=2)
 
-    ph_trail, = ax_f.plot([], [], color=AMBER, lw=2.0, alpha=0.75,
-                          solid_capstyle='round')
-    ph_dot    = ax_f.plot([], [], 'o', color=AMBER, ms=8,  zorder=9)[0]
-    ph_ring   = ax_f.plot([], [], 'o', color=AMBER, ms=18, zorder=8,
-                          markerfacecolor='none', markeredgewidth=1.0,
-                          alpha=0.22)[0]
+    # \u00d3rbita de fundo: gradiente de cor pela velocidade (teal \u2192 amber \u2192 vermelho)
+    pts     = np.column_stack([th_d, omega]).reshape(-1, 1, 2)
+    segs_bg = np.concatenate([pts[:-1], pts[1:]], axis=1)
+    speed_n = v_p / (v_p.max() + 1e-9)
+    cmap_f  = mcolors.LinearSegmentedColormap.from_list('fase', [TEAL, AMBER, '#FF4040'])
+    lc = LineCollection(segs_bg, cmap=cmap_f, linewidth=1.6, alpha=0.45, zorder=3)
+    lc.set_array(speed_n[:-1])
+    ax_f.add_collection(lc)
+
+    # Ponto de equil\u00edbrio est\u00e1vel (origem)
+    ax_f.plot(0, 0, 'D', color=GOLD, ms=6, zorder=6,
+              markeredgecolor=BG, markeredgewidth=0.8, alpha=0.9)
+    ax_f.text(0, pad_y*0.18, 'equil\u00edbrio', color=GOLD, fontsize=6.5,
+              ha='center', va='bottom', alpha=0.55, zorder=6)
+
+    # Glow + ponto + rastro atual (sem path_effects — caro de redesenhar a cada frame)
+    ph_glow   = ax_f.plot([], [], 'o', color=AMBER, ms=26, zorder=6,
+                          alpha=0.10)[0]
+    ph_ring   = ax_f.plot([], [], 'o', color=AMBER, ms=16, zorder=7,
+                          markerfacecolor='none', markeredgewidth=1.1,
+                          alpha=0.35)[0]
+    ph_trail_gl, = ax_f.plot([], [], color=AMBER, lw=5.0, alpha=0.18,
+                             solid_capstyle='round', zorder=7)
+    ph_trail, = ax_f.plot([], [], color=AMBER, lw=2.4, alpha=0.85,
+                          solid_capstyle='round', zorder=8)
+    ph_dot    = ax_f.plot([], [], 'o', color=AMBER, ms=7,  zorder=9,
+                          markeredgecolor=WHITE, markeredgewidth=0.6)[0]
 
     aobj.update(dict(
         segs=segs, fio=fio, fio2=fio2,
@@ -461,7 +494,7 @@ def rebuild():
         t_lbl=t_lbl, ek_lbl=ek_lbl, ep_lbl=ep_lbl, et_lbl=et_lbl,
         ln_ek=ln_ek, ln_ep=ln_ep, ln_et=ln_et,
         dk=dk, dp=dp, dtt=dtt,
-        ph_trail=ph_trail, ph_dot=ph_dot, ph_ring=ph_ring,
+        ph_trail=ph_trail, ph_trail_gl=ph_trail_gl, ph_dot=ph_dot, ph_ring=ph_ring, ph_glow=ph_glow,
     ))
 
 rebuild()
@@ -504,9 +537,9 @@ def update(_frame):
     aobj['varr'].set_offsets([[xi, yi]])
     aobj['varr'].set_UVC(vx, vy)
 
-    aobj['ek_lbl'].set_text('  Ek = %6.3f J  ' % Ek[i])
-    aobj['ep_lbl'].set_text('  Ep = %6.3f J  ' % Ep[i])
-    aobj['et_lbl'].set_text('   E = %6.3f J  ' % Et[i])
+    aobj['ek_lbl'].set_text(f'{"Ek":<3}= {Ek[i]:6.3f} J')
+    aobj['ep_lbl'].set_text(f'{"Ep":<3}= {Ep[i]:6.3f} J')
+    aobj['et_lbl'].set_text(f'{"E":<3}= {Et[i]:6.3f} J')
 
     aobj['t_lbl'].set_text(
         't = %.2f s   \u00b7   \u03b8 = %+.1f\u00b0   \u00b7   '
@@ -522,12 +555,16 @@ def update(_frame):
     aobj['dtt'].set_data([ti], [Et[i]])
 
     p0 = max(0, i - 110)
+    th_now = np.degrees(theta[i])
     aobj['ph_trail'].set_data(np.degrees(theta[p0:i+1]), omega[p0:i+1])
-    aobj['ph_dot'].set_data(  [np.degrees(theta[i])], [omega[i]])
-    aobj['ph_ring'].set_data( [np.degrees(theta[i])], [omega[i]])
+    aobj['ph_trail_gl'].set_data(np.degrees(theta[p0:i+1]), omega[p0:i+1])
+    aobj['ph_dot'].set_data(  [th_now], [omega[i]])
+    aobj['ph_ring'].set_data( [th_now], [omega[i]])
+    aobj['ph_glow'].set_data( [th_now], [omega[i]])
     col = AMBER if Ek[i] > Et0*0.5 else TEAL
     aobj['ph_dot'].set_color(col)
     aobj['ph_ring'].set_color(col)
+    aobj['ph_glow'].set_color(col)
 
     return []
 
