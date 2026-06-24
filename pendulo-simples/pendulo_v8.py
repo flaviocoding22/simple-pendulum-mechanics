@@ -96,6 +96,13 @@ for _km in ('keymap.fullscreen', 'keymap.back', 'keymap.forward', 'keymap.save',
             'keymap.xscale', 'keymap.yscale'):
     plt.rcParams[_km] = []
 
+# Face de "instrumento" (Bahnschrift = grotesca técnica DIN, a mesma família de
+# painéis/sinalização de engenharia; vem com o Windows 10/11). Usada com
+# restrição: só título, rótulos de seção e legendas de leitura. Os números
+# continuam em Consolas (mono) e o corpo em Segoe UI. Cai para Segoe UI se a
+# fonte não existir na máquina. (▼ ► ₀ não existem nela — esses ficam fora.)
+DISPLAY = ['Bahnschrift', 'Segoe UI']
+
 # ── Parâmetros ────────────────────────────────────────────────────────────────
 # A = amplitude do torque forçante (rad/s²); wd = frequência forçante (rad/s).
 # A = 0 → pêndulo livre de sempre.
@@ -609,16 +616,44 @@ btn_rst.label.set_color(MUTED2); btn_rst.label.set_fontsize(9)
 
 # ── Cabeçalho (faixa dedicada no topo, acima de tudo) ────────────────────────
 TITLE_X = 0.5
-fig.text(TITLE_X, 0.994, 'PÊNDULO SIMPLES',
-         ha='center', va='top', fontsize=17, fontweight='bold', color=AMBER,
-         path_effects=[pe.withStroke(linewidth=10, foreground=BG)])
-fig.text(TITLE_X, 0.962,
+fig.text(TITLE_X, 0.984, 'PÊNDULO SIMPLES',
+         ha='center', va='top', fontsize=18, fontweight='bold', color=AMBER,
+         fontfamily=DISPLAY,
+         path_effects=[pe.withStroke(linewidth=8, foreground=BG)])
+fig.text(TITLE_X, 0.960,
          'simulação interativa  ·  runge-kutta 4ª ordem  ·  atrito viscoso opcional',
-         ha='center', va='top', fontsize=8, color=MUTED2)
+         ha='center', va='top', fontsize=7.5, color=MUTED2, fontfamily=DISPLAY)
 
-sub_txt = fig.text(TITLE_X, 0.934, '', ha='center', va='top', fontsize=8, color='#7E88B0')
-# Badge de ressonância (acende quando Ω ≈ ω₀ com força ligada) — canto sup. direito
-reson_txt = fig.text(0.985, 0.910, '', ha='right', va='top',
+# ── Faixa de leitura dos períodos (mostrador de instrumento) ─────────────────
+# O produto intelectual da simulação são os três períodos (linear, exato e
+# medido) + a frequência natural — antes ficavam numa única linha cinza minúscula.
+# Aqui viram um mostrador segmentado: RÓTULO (Bahnschrift, caixa-alta) em cima,
+# VALOR (Consolas, com símbolo) embaixo, com o período EXATO em destaque (herói)
+# e um "chip" de desvio em relação ao linear. Os valores são preenchidos em
+# _update_sub(); só o conteúdo muda, não o cálculo.
+_READ_CX = [0.32, 0.44, 0.56, 0.68]
+def _readout(cx, label, color, hero=False):
+    fig.text(cx, 0.938, label, ha='center', va='top', fontfamily=DISPLAY,
+             fontsize=7.4 if hero else 6.6, fontweight='bold',
+             color=color if hero else MUTED2)
+    vt = fig.text(cx, 0.921, '', ha='center', va='top', fontfamily='monospace',
+                  fontsize=13 if hero else 9.5, fontweight='bold', color=color)
+    return vt
+read_lin = _readout(_READ_CX[0], 'LINEAR',  '#8E99CC')
+read_ex  = _readout(_READ_CX[1], 'EXATO',   GOLD, hero=True)
+read_med = _readout(_READ_CX[2], 'MEDIDO',  TEAL)
+read_w0  = _readout(_READ_CX[3], 'NATURAL', VIOLET)
+# chip de desvio do período exato vs. linear, sob o valor-herói
+read_dpct = fig.text(_READ_CX[1], 0.898, '', ha='center', va='top',
+                     fontfamily='monospace', fontsize=7.2, fontweight='bold', color=MINT)
+# divisórias finas entre os segmentos (linguagem de painel de instrumento)
+for _dx in (0.38, 0.50, 0.62):
+    fig.add_artist(plt.Line2D([_dx, _dx], [0.900, 0.940], transform=fig.transFigure,
+                   color=BORDER2, lw=0.7, alpha=0.7))
+
+# Leitura da força/ressonância (canto sup. direito): razão Ω/ω₀ e aviso quando
+# Ω ≈ ω₀ com força ligada.
+reson_txt = fig.text(1.0 - MARGIN_R, 0.921, '', ha='right', va='top',
                      fontsize=9.5, fontweight='bold', color=GOLD)
 
 # ── Barra de ferramentas (topo-esquerda do cabeçalho; posição fixa) ──────────
@@ -632,9 +667,16 @@ def _make_tool_btn(x, w, label, color=MUTED2):
 
 btn_lin   = _make_tool_btn(0.018, 0.070, 'Linear: off')
 btn_speed = _make_tool_btn(0.093, 0.048, 'Vel: 1×')
-btn_save  = _make_tool_btn(0.146, 0.074, 'Salvar PNG')
-btn_csv   = _make_tool_btn(0.225, 0.074, 'Salvar CSV')
+btn_save  = _make_tool_btn(0.146, 0.074, 'Salvar PNG', color=MUTED)
+btn_csv   = _make_tool_btn(0.225, 0.074, 'Salvar CSV', color=MUTED)
 btn_reson = _make_tool_btn(0.304, 0.090, 'Ressonância', color=GOLD)
+# Hierarquia: "Ressonância" é a ação primária de análise — recebe um leve
+# preenchimento e contorno dourados pra sair da fileira de chips iguais; as
+# utilidades de salvar ficam recuadas (cinza mais apagado, acima).
+btn_reson.color = '#1A1407'
+btn_reson.ax.set_facecolor('#1A1407')
+for _sp in btn_reson.ax.spines.values():
+    _sp.set_edgecolor(GOLD); _sp.set_linewidth(1.0)
 
 status_txt = fig.text(CTRL_L, CTRL_BOT + BTN_H + 0.005, '',
                       va='bottom', fontsize=7.5, color=MUTED2)
@@ -658,27 +700,33 @@ fig.add_artist(ctrl_sep_line)
 register_ctrl(ctrl_sep_line, 'line', CTRL_TOP)
 
 params_lbl = fig.text(CTRL_L, CTRL_TOP - 0.002,
-         '▪  PARÂMETROS', color=MUTED2, fontsize=7.5, fontweight='bold',
-         va='top')
+         'PARÂMETROS', color=MUTED2, fontsize=8, fontweight='bold',
+         va='top', fontfamily=DISPLAY)
 register_ctrl(params_lbl, 'text', (CTRL_L, CTRL_TOP), anchor=CTRL_TOP, offset=-0.002)
 
 relayout()
 
 def _update_sub():
-    # Mostra só grandezas derivadas (os parâmetros já aparecem ao lado dos sliders):
-    # os três períodos, a frequência natural ω₀ e — havendo força — a razão Ω/ω₀.
+    # Preenche o mostrador de períodos (grandezas derivadas — os parâmetros já
+    # aparecem ao lado dos sliders). Só formata; o cálculo está em compute().
     dpct = (Tp_amp / Tp_lin - 1.0) * 100.0
-    med  = '—' if Tp_med is None else f'{Tp_med:.3f} s'
     w0   = np.sqrt(state['g'] / state['L'])
-    txt = ('T₀ = %.3f s (linear)   ·   T = %.3f s (exato, %+.1f%%)   ·   '
-           'T = %s (medido)   ·   ω₀ = %.2f rad/s'
-           % (Tp_lin, Tp_amp, dpct, med, w0))
+    read_lin.set_text('T₀ %.3f s' % Tp_lin)
+    read_ex.set_text('T %.3f s' % Tp_amp)
+    read_med.set_text('T —' if Tp_med is None else 'T %.3f s' % Tp_med)
+    read_w0.set_text('ω₀ %.2f' % w0)
+    arrow = '▲' if dpct >= 0 else '▼'
+    read_dpct.set_text('%s %+.1f%%  vs. linear' % (arrow, dpct))
+    read_dpct.set_color(MINT if dpct >= 0 else RED)
+    # Leitura da força (canto sup. direito): razão Ω/ω₀ e aviso de ressonância
+    # quando Ω está a menos de 8% de ω₀ com a força ligada.
     ratio = state['wd'] / w0
     if state['A'] > 0:
-        txt += '   ·   forçante Ω = %.2f rad/s  (Ω/ω₀ = %.2f)' % (state['wd'], ratio)
-    sub_txt.set_text(txt)
-    # badge de ressonância: Ω a menos de 8% de ω₀ com força ligada
-    reson_txt.set_text('●  RESSONÂNCIA' if state['A'] > 0 and abs(ratio - 1.0) < 0.08 else '')
+        near = abs(ratio - 1.0) < 0.08
+        reson_txt.set_text(('Ω/ω₀ = %.2f' % ratio) + ('    ●  RESSONÂNCIA' if near else ''))
+        reson_txt.set_color(GOLD if near else MUTED2)
+    else:
+        reson_txt.set_text('')
 
 _update_sub()
 
@@ -722,7 +770,10 @@ def rebuild():
     xlim = L + margin
     ax_d.set_xlim(-xlim, xlim)
     ax_d.set_ylim(-L - margin, 0.80)
-    ax_d.set_aspect('equal', adjustable='datalim')
+    # adjustable='box' + anchor='N': respeita os limites de dados (sem expandir
+    # céu vazio acima do suporte) e ancora a cena no TOPO do eixo, jogando a folga
+    # pra baixo — elimina o vão morto entre a barra de ferramentas e o suporte.
+    ax_d.set_aspect('equal', adjustable='box', anchor='N')
     ax_d.axis('off')
 
     # Grade de fundo
@@ -811,8 +862,11 @@ def rebuild():
     # 4 leituras com marcadores que ligam Ek/Ep/E às linhas do gráfico.
     PANEL_W, PANEL_H = 0.240, 0.205
     PANEL_X, PANEL_Y = 1 - 0.025 - PANEL_W, 0.773
+    # Caixa retangular de canto vivo (mesma linguagem dos gráficos/sliders/botões
+    # — era a única caixa arredondada da tela; agora todos os contêineres falam
+    # a mesma língua de painel de instrumento).
     e_panel = FancyBboxPatch((PANEL_X, PANEL_Y), PANEL_W, PANEL_H,
-        transform=ax_d.transAxes, boxstyle='round,pad=0.010,rounding_size=0.016',
+        transform=ax_d.transAxes, boxstyle='square,pad=0.012',
         facecolor='#0A0C16', edgecolor=BORDER2, linewidth=0.8, alpha=0.92,
         zorder=14)
     ax_d.add_patch(e_panel)
@@ -821,9 +875,11 @@ def rebuild():
     TXT_X = PANEL_X + 0.034
     VAL_X = PANEL_X + PANEL_W - 0.020
     ax_d.text(DOT_X, PANEL_Y + PANEL_H*0.88, 'ENERGIA', transform=ax_d.transAxes,
-        fontsize=6.8, color=MUTED2, fontweight='bold', ha='left', va='center', zorder=15)
+        fontsize=7.0, color=MUTED2, fontweight='bold', ha='left', va='center',
+        zorder=15, fontfamily=DISPLAY)
     ax_d.text(VAL_X, PANEL_Y + PANEL_H*0.88, 'joules', transform=ax_d.transAxes,
-        fontsize=6.5, color=MUTED, ha='right', va='center', zorder=15)
+        fontsize=6.8, color=MUTED, ha='right', va='center', zorder=15,
+        fontfamily=DISPLAY)
     ax_d.plot([DOT_X, VAL_X], [PANEL_Y + PANEL_H*0.76]*2, transform=ax_d.transAxes,
         color=BORDER2, lw=0.6, zorder=15)
 
