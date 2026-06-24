@@ -43,6 +43,7 @@ Uso:
 """
 
 import os
+import sys
 import math
 import datetime
 import numpy as np
@@ -1072,9 +1073,16 @@ def cycle_speed(event=None):
     btn_speed.label.set_text(f'Vel: {state["speed"]:g}×')
     fig.canvas.draw_idle()
 
+def _output_dir():
+    """Pasta para salvar PNG/CSV: ao lado do .exe quando empacotado (PyInstaller),
+    senão ao lado do script. (Empacotado, __file__ aponta para um temp que some.)"""
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
 def _out_path(ext):
     fname = datetime.datetime.now().strftime(f'pendulo_v8_%Y%m%d_%H%M%S.{ext}')
-    return fname, os.path.join(os.path.dirname(os.path.abspath(__file__)), fname)
+    return fname, os.path.join(_output_dir(), fname)
 
 def save_png(event=None):
     """Salva um PNG da janela na pasta do script, com data/hora no nome."""
