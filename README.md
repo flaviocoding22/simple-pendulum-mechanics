@@ -88,6 +88,7 @@ python pendulo-simples/pendulo_v8.py
 | `v` | velocidade da animação (0,5× / 1× / 2×) |
 | `b` | abrir a curva de ressonância |
 | `k` / `j` | seção de Poincaré / diagrama de bifurcação |
+| `m` | música de fundo (escolhe um MP3/WAV e toca em loop) |
 | `s` / `d` | salvar PNG / exportar CSV |
 | `←` / `→` | avançar / voltar quadro a quadro (pausado) |
 

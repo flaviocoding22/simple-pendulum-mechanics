@@ -7,6 +7,7 @@ pyinstaller --onefile --windowed --noconfirm --clean ^
   --name "Pendulo Simples" ^
   --icon "pendulo-simples\pendulo.ico" ^
   --hidden-import matplotlib.backends.backend_qtagg ^
+  --hidden-import PyQt5.QtMultimedia ^
   "pendulo-simples\pendulo_v8.py"
 
 echo.

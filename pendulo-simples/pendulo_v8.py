@@ -33,7 +33,8 @@ minimizáveis), agora num projeto mais completo e didático:
 Atalhos de teclado:
     [espaço] pausa · [r] reset · [e]/[f] minimiza energia/fases · [c] compara
     linear · [v] velocidade · [b] curva de ressonância · [k] seção de Poincaré ·
-    [j] diagrama de bifurcação · [s] salva PNG · [d] salva CSV · [←]/[→] passo
+    [j] diagrama de bifurcação · [m] música de fundo · [s] salva PNG ·
+    [d] salva CSV · [←]/[→] passo
 
 Requisitos:
     pip install numpy matplotlib PyQt5
@@ -642,7 +643,7 @@ register_ctrl(status_txt, 'text', (CTRL_L, y_btn), anchor=y_btn, offset=BTN_H + 
 # Dica de atalhos de teclado (rodapé da coluna esquerda, bem discreto)
 fig.text(MARGIN_L, 0.013,
          'atalhos:  [espaço] pausar · [r] reset · [e/f] painéis · [c] comparar · [v] velocidade · '
-         '[b] ressonância · [k] Poincaré · [j] bifurcação · [s] PNG · [d] CSV · [←/→] passo',
+         '[b] ressonância · [k] Poincaré · [j] bifurcação · [m] música · [s] PNG · [d] CSV · [←/→] passo',
          fontsize=7, color=MUTED, va='bottom', ha='left')
 
 # Separadores
@@ -1237,6 +1238,44 @@ def show_bifurcation(event=None):
         pass
     status_txt.set_text(''); fig.canvas.draw_idle()
 
+# ── Música de fundo (PyQt5.QtMultimedia; toca em loop) ───────────────────────
+_music = {'player': None, 'playlist': None, 'on': False, 'name': ''}
+
+def toggle_music(event=None):
+    """[m] Música de fundo. Na 1ª vez abre um seletor para escolher um MP3/WAV;
+    toca em loop. Os toques seguintes pausam/retomam. Não bloqueia a animação
+    (usa o mesmo laço de eventos do Qt). Qualquer falha vira só uma mensagem."""
+    try:
+        from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
+        from PyQt5.QtCore import QUrl
+        from PyQt5.QtWidgets import QFileDialog, QApplication
+        if QApplication.instance() is None:   # sem janela Qt: evita abort do Qt
+            status_txt.set_text('música: disponível só na janela do app')
+            fig.canvas.draw_idle(); return
+        if _music['player'] is None:
+            path, _ = QFileDialog.getOpenFileName(
+                None, 'Escolha a música de fundo', _output_dir(),
+                'Áudio (*.mp3 *.wav *.ogg *.m4a);;Todos os arquivos (*.*)')
+            if not path:
+                status_txt.set_text('música: nenhum arquivo escolhido')
+            else:
+                pl = QMediaPlaylist()
+                pl.addMedia(QMediaContent(QUrl.fromLocalFile(path)))
+                pl.setPlaybackMode(QMediaPlaylist.Loop)
+                mp = QMediaPlayer(); mp.setPlaylist(pl); mp.setVolume(35)
+                _music.update(player=mp, playlist=pl, name=os.path.basename(path))
+                mp.play(); _music['on'] = True
+                status_txt.set_text('música: tocando ' + _music['name'])
+        elif _music['on']:
+            _music['player'].pause(); _music['on'] = False
+            status_txt.set_text('música: pausada')
+        else:
+            _music['player'].play(); _music['on'] = True
+            status_txt.set_text('música: tocando ' + _music['name'])
+    except Exception as exc:
+        status_txt.set_text('música: indisponível (%s)' % type(exc).__name__)
+    fig.canvas.draw_idle()
+
 def on_key(event):
     k = event.key
     if k in (' ', 'p'):
@@ -1261,6 +1300,8 @@ def on_key(event):
         show_poincare()
     elif k == 'j':
         show_bifurcation()
+    elif k == 'm':
+        toggle_music()
     elif k in ('right', 'left'):
         if not state['paused']:
             toggle_pause()          # pausa antes de andar quadro a quadro
