@@ -22,6 +22,8 @@ minimizáveis), agora num projeto mais completo e didático:
   • Análise de caos (pêndulo forçado): seção de Poincaré [k] (revela o atrator
     estranho) e diagrama de bifurcação [j] (cascata de duplicação de período
     rumo ao caos, varrendo a força A).
+  • Curva período × amplitude [a]: a reta linear T₀, a curva exata T(θ₀) via AGM
+    (que dispara a 180°) e pontos medidos por RK4 — o "porquê" dos três períodos.
   • Arco de ângulo ao vivo na simulação.
   • Controle de velocidade da animação (0,5× / 1× / 2×); exportar PNG e CSV.
   • Atrito viscoso (γ), energia dissipada (ΔE), presets de gravidade e
@@ -33,8 +35,8 @@ minimizáveis), agora num projeto mais completo e didático:
 Atalhos de teclado:
     [espaço] pausa · [r] reset · [e]/[f] minimiza energia/fases · [c] compara
     linear · [v] velocidade · [b] curva de ressonância · [k] seção de Poincaré ·
-    [j] diagrama de bifurcação · [m] música de fundo · [s] salva PNG ·
-    [d] salva CSV · [←]/[→] passo
+    [j] diagrama de bifurcação · [a] período × amplitude · [m] música de fundo ·
+    [s] salva PNG · [d] salva CSV · [←]/[→] passo
 
 Requisitos:
     pip install numpy matplotlib PyQt5
@@ -249,6 +251,30 @@ def bifurcation_data(g, L, gam, wd, A_array, n_periods, n_discard, dt_target=0.0
         if p >= n_discard:
             xs.append(A.copy()); ys.append(om.copy())
     return np.concatenate(xs), np.concatenate(ys)
+
+def period_amplitude_data(g, L, n=260, deg_max=178.0):
+    """Período do pêndulo livre em função da amplitude θ₀.
+
+    Devolve (graus, T0, T_exato): a reta linear T₀ = 2π√(L/g) (constante) e a
+    curva exata T(θ₀) = 2π√(L/g)/AGM(1, cos(θ₀/2)) — vetorizada via _agm sobre
+    o array todo. T diverge quando θ₀ → 180° (o pêndulo para no alto)."""
+    deg = np.linspace(2.0, deg_max, n)
+    base = 2 * np.pi * np.sqrt(L / g)
+    T_exact = base / _agm(1.0, np.cos(np.radians(deg) / 2.0))
+    return deg, base, T_exact
+
+def measured_periods_at(g, L, degs, t_total=26.0):
+    """Período MEDIDO (1º máximo interior de θ) de pêndulos livres integrados por
+    RK4, em cada amplitude de `degs` — pontos pra validar a curva exata. Pula as
+    amplitudes que não completam uma oscilação dentro da janela."""
+    t = np.arange(0, t_total, DT)
+    out = []
+    for d in degs:
+        th, _ = _rk4(lambda ti, a, w: (w, -(g / L) * np.sin(a)), np.radians(d), t)
+        Tm = measured_period(t, th)
+        if Tm is not None:
+            out.append((d, Tm))
+    return out
 
 # ── Integração numérica (RK4) ─────────────────────────────────────────────────
 def compute(g: float, L: float, m: float, theta0: float, gamma: float,
@@ -685,7 +711,8 @@ register_ctrl(status_txt, 'text', (CTRL_L, y_btn), anchor=y_btn, offset=BTN_H + 
 # Dica de atalhos de teclado (rodapé da coluna esquerda, bem discreto)
 fig.text(MARGIN_L, 0.013,
          'atalhos:  [espaço] pausar · [r] reset · [e/f] painéis · [c] comparar · [v] velocidade · '
-         '[b] ressonância · [k] Poincaré · [j] bifurcação · [m] música · [s] PNG · [d] CSV · [←/→] passo',
+         '[b] ressonância · [k] Poincaré · [j] bifurcação · [a] período×amplitude · [m] música · '
+         '[s] PNG · [d] CSV · [←/→] passo',
          fontsize=7, color=MUTED, va='bottom', ha='left')
 
 # Separadores
@@ -1294,6 +1321,50 @@ def show_bifurcation(event=None):
         pass
     status_txt.set_text(''); fig.canvas.draw_idle()
 
+def show_period_amplitude(event=None):
+    """[a] Janela com a curva período × amplitude: por que os três períodos do
+    cabeçalho divergem. Mostra a reta linear T₀ (válida só pra pequenas
+    oscilações), a curva exata T(θ₀) via AGM (que cresce e dispara a 180°) e
+    alguns pontos medidos por RK4 confirmando o exato. A amplitude atual fica
+    marcada com o desvio % em relação ao linear."""
+    g, L = state['g'], state['L']
+    deg, T0, T_exact = period_amplitude_data(g, L)
+    pts = measured_periods_at(g, L, np.arange(20.0, 161.0, 20.0))
+    rfig = plt.figure(figsize=(7.4, 4.8), facecolor=BG)
+    try:
+        rfig.canvas.manager.set_window_title('Período × amplitude — Pêndulo v8')
+    except Exception:
+        pass
+    ax = rfig.add_axes([0.12, 0.16, 0.84, 0.72], facecolor=PANEL)
+    ax.axhline(T0, color=GOLD, lw=1.6, ls='--', zorder=4,
+               label='T₀ linear = %.3f s (pequenas osc.)' % T0)
+    ax.plot(deg, T_exact, color=MINT, lw=2.2, zorder=5, label='T exato (AGM)')
+    if pts:
+        md = [d for d, _ in pts]; mt = [t for _, t in pts]
+        ax.plot(md, mt, 'o', mfc='none', mec=AMBER, mew=1.5, ms=7, zorder=6,
+                label='T medido (RK4)')
+    # amplitude atual + desvio %
+    cur = state['theta0_deg']; curT = exact_period(g, L, np.radians(cur))
+    ax.axvline(cur, color=WHITE, ls=':', lw=1.3, alpha=0.8, zorder=4)
+    ax.plot([cur], [curT], 'o', color=BLUE, ms=8, zorder=7,
+            markeredgecolor=WHITE, markeredgewidth=0.6)
+    ax.annotate('θ₀ = %.0f°\nT = %.3f s  (+%.1f%%)' % (cur, curT, (curT/T0 - 1)*100),
+                (cur, curT), textcoords='offset points', xytext=(10, -28),
+                color=BLUE, fontsize=8.5, fontweight='bold')
+    ax.set_xlim(0, deg.max())
+    ax.set_ylim(0, min(T_exact.max(), T0 * 4.0) * 1.05)   # corta a explosão a 180°
+    _style_popup(ax, 'amplitude θ₀ (°)', 'período T (s)',
+                 'Período × amplitude  ·  exato vs. linear')
+    ax.legend(facecolor=PANEL, edgecolor=BORDER2, fontsize=8.5, labelcolor=WHITE, loc='upper left')
+    rfig.text(0.12, 0.035,
+              'pequena amplitude: T ≈ T₀;  amplitude grande: o período cresce e dispara a 180°'
+              '   ·   g=%.2f  L=%.2f' % (g, L), color=MUTED, fontsize=8, ha='left')
+    try:
+        rfig.show()
+    except Exception:
+        pass
+    fig.canvas.draw_idle()
+
 # ── Música de fundo (PyQt5.QtMultimedia; toca em loop) ───────────────────────
 _music = {'player': None, 'playlist': None, 'on': False, 'name': ''}
 
@@ -1356,6 +1427,8 @@ def on_key(event):
         show_poincare()
     elif k == 'j':
         show_bifurcation()
+    elif k == 'a':
+        show_period_amplitude()
     elif k == 'm':
         toggle_music()
     elif k in ('right', 'left'):

@@ -64,16 +64,25 @@ Notas ao testar:
   fração da figura) e tratam os **painéis minimizáveis**.
 - Janelas de análise (popups separados): `show_resonance` (curva linear ×
   não-linear), `show_poincare` (seção de Poincaré), `show_bifurcation` (diagrama
-  de bifurcação, integrador **vetorizado** `bifurcation_data`).
+  de bifurcação, integrador **vetorizado** `bifurcation_data`),
+  `show_period_amplitude` (curva período × amplitude — `period_amplitude_data`
+  vetorizado via AGM + pontos medidos por `measured_periods_at`).
 
 ## Convenções e armadilhas (ler antes de editar)
 
 ### Fontes
 - Corpo em **Segoe UI** (sans), números em **Consolas** (mono) — `rcParams`.
+- **Display:** constante `DISPLAY = ['Bahnschrift', 'Segoe UI']` (Bahnschrift =
+  grotesca técnica DIN, vem com o Windows; cai pra Segoe UI se ausente). Usada
+  **só** no título, rótulos de seção (`PARÂMETROS`, `ENERGIA`) e nos rótulos do
+  mostrador de períodos. ⚠️ **Bahnschrift não tem** `▼ ► ₀` (subscrito) nem
+  formas geométricas — esses ficam fora dela (use Segoe UI/Consolas). Os valores
+  numéricos do mostrador (com `T₀`, `ω₀`, `▲`) vão em **Consolas**, que os cobre.
 - ⚠️ **Segoe UI não tem** vários glyphs de UI: `▾ ▸ ▶ ✓ ↺ ◈`. Use os que ele tem:
   `▼ ► ‖ ▪ ●`. Botões "confirmar/refresh" ficam **sem ícone**.
 - DejaVu Sans é o fallback, mas o fallback **emite warning** — por isso o teste
-  com warnings-as-error. Qualquer glyph novo precisa existir no Segoe UI.
+  com warnings-as-error. Glyph novo numa face precisa existir **naquela** face
+  (ex.: nada de `▼`/`₀` em Bahnschrift; nada de `▾`/`◈` em Segoe UI).
 
 ### Animação por blitting (`blit=True`)
 - Só os artistas em `ANIM` (com `animated=True`) são redesenhados por quadro; o

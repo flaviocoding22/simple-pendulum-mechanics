@@ -58,7 +58,10 @@ python pendulo-simples/pendulo_v8.py
   pequenas oscilações na simulação e no espaço de fases (tecla `c`) — torna
   visível por que a aproximação de pequeno ângulo erra em grandes amplitudes.
 - **Três períodos lado a lado:** `T₀` (linear), `T` (amplitude exata via AGM) e
-  `T` medido direto da trajetória integrada — validação do integrador.
+  `T` medido direto da trajetória integrada — validação do integrador. A tecla
+  `a` abre a **curva período × amplitude**, mostrando a reta linear `T₀`, a curva
+  exata `T(θ₀)` que dispara a 180° e pontos **medidos** por RK4 sobre ela — o
+  "porquê" de os três períodos divergirem conforme a amplitude cresce.
 - **Força externa / ressonância:** torque forçante `A·cos(ω_d·t)` opcional. Com
   a frequência forçante `Ω` próxima de `ω₀ = √(g/L)`, a amplitude e a energia
   crescem (ressonância) — o cabeçalho mostra `ω₀` e a razão `Ω/ω₀`, acende um
@@ -88,6 +91,7 @@ python pendulo-simples/pendulo_v8.py
 | `v` | velocidade da animação (0,5× / 1× / 2×) |
 | `b` | abrir a curva de ressonância |
 | `k` / `j` | seção de Poincaré / diagrama de bifurcação |
+| `a` | curva período × amplitude (exato × linear) |
 | `m` | música de fundo (escolhe um MP3/WAV e toca em loop) |
 | `s` / `d` | salvar PNG / exportar CSV |
 | `←` / `→` | avançar / voltar quadro a quadro (pausado) |
