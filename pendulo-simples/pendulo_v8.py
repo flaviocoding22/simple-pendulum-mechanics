@@ -838,6 +838,27 @@ def rebuild():
                   [0,   -L*np.cos(state['theta0'])],
                   color=BORDER2, lw=0.6, ls=':', alpha=0.28, zorder=2)
 
+    # Transferidor graduado no pivô (escala de ângulo, 0° na vertical): torna a
+    # leitura de θ tangível e reforça a estética de instrumento. Tudo estático
+    # (fundo cacheado pelo blit) — não entra em ANIM, custo zero por quadro.
+    prot_r = max(0.46, L*0.50)
+    pa = np.radians(np.linspace(-90, 90, 160))
+    ax_d.plot(prot_r*np.sin(pa), -prot_r*np.cos(pa),
+              color=BORDER2, lw=0.8, alpha=0.55, zorder=2)
+    for ang in range(-90, 91, 15):
+        a = np.radians(ang); major = (ang % 30 == 0)
+        r2 = prot_r + (0.05*L if major else 0.025*L)
+        ax_d.plot([prot_r*np.sin(a), r2*np.sin(a)],
+                  [-prot_r*np.cos(a), -r2*np.cos(a)],
+                  color=MUTED2 if major else BORDER2,
+                  lw=0.9 if major else 0.6,
+                  alpha=0.6 if major else 0.4, zorder=2)
+        if major and ang != 0:        # 0° fica sob o fio: dispensa rótulo
+            rl = prot_r + 0.11*L
+            ax_d.text(rl*np.sin(a), -rl*np.cos(a), '%d°' % abs(ang),
+                      color=MUTED2, fontsize=6.0, alpha=0.6,
+                      ha='center', va='center', zorder=2)
+
     # Rastro
     segs = []
     for k in range(N_SEGS):
