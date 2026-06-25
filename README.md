@@ -84,6 +84,7 @@ python pendulo-simples/pendulo_v8.py
 
 | Tecla | Ação |
 |---|---|
+| `h` | abrir a janela de ajuda (todos os controles) |
 | `espaço` | pausar / continuar |
 | `r` | reset |
 | `e` / `f` | minimizar painel de energia / espaço de fases |

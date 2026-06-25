@@ -33,10 +33,10 @@ minimizáveis), agora num projeto mais completo e didático:
     um ganho de FPS de cerca de 15× frente ao redesenho da figura inteira.
 
 Atalhos de teclado:
-    [espaço] pausa · [r] reset · [e]/[f] minimiza energia/fases · [c] compara
-    linear · [v] velocidade · [b] curva de ressonância · [k] seção de Poincaré ·
-    [j] diagrama de bifurcação · [a] período × amplitude · [m] música de fundo ·
-    [s] salva PNG · [d] salva CSV · [←]/[→] passo
+    [h] ajuda · [espaço] pausa · [r] reset · [e]/[f] minimiza energia/fases ·
+    [c] compara linear · [v] velocidade · [b] curva de ressonância · [k] seção de
+    Poincaré · [j] diagrama de bifurcação · [a] período × amplitude · [m] música
+    de fundo · [s] salva PNG · [d] salva CSV · [←]/[→] passo
 
 Requisitos:
     pip install numpy matplotlib PyQt5
@@ -658,18 +658,20 @@ fig.text(TITLE_X, 0.960,
 # e um "chip" de desvio em relação ao linear. Os valores são preenchidos em
 # _update_sub(); só o conteúdo muda, não o cálculo.
 _READ_CX = [0.32, 0.44, 0.56, 0.68]
-def _readout(cx, label, color, hero=False):
-    fig.text(cx, 0.938, label, ha='center', va='top', fontfamily=DISPLAY,
-             fontsize=7.4 if hero else 6.6, fontweight='bold',
-             color=color if hero else MUTED2)
-    vt = fig.text(cx, 0.921, '', ha='center', va='top', fontfamily='monospace',
-                  fontsize=13 if hero else 9.5, fontweight='bold', color=color)
-    return vt
-read_lin = _readout(_READ_CX[0], 'LINEAR',  '#8E99CC')
-read_ex  = _readout(_READ_CX[1], 'EXATO',   GOLD, hero=True)
-read_med = _readout(_READ_CX[2], 'MEDIDO',  TEAL)
-read_w0  = _readout(_READ_CX[3], 'NATURAL', VIOLET)
-# chip de desvio do período exato vs. linear, sob o valor-herói
+read_artists = {}   # key -> (rótulo, valor, cor_ativa_rótulo, cor_ativa_valor)
+def _readout(key, cx, label, lab_color, val_color, hero=False):
+    la = fig.text(cx, 0.938, label, ha='center', va='top', fontfamily=DISPLAY,
+                  fontsize=7.4 if hero else 6.6, fontweight='bold', color=lab_color)
+    va = fig.text(cx, 0.921, '', ha='center', va='top', fontfamily='monospace',
+                  fontsize=13 if hero else 9.5, fontweight='bold', color=val_color)
+    read_artists[key] = (la, va, lab_color, val_color)
+    return va
+read_lin = _readout('lin', _READ_CX[0], 'LINEAR',  MUTED2, '#8E99CC')
+read_ex  = _readout('ex',  _READ_CX[1], 'EXATO',   GOLD,   GOLD, hero=True)
+read_med = _readout('med', _READ_CX[2], 'MEDIDO',  MUTED2, TEAL)
+read_w0  = _readout('w0',  _READ_CX[3], 'NATURAL', MUTED2, VIOLET)
+# chip de desvio do período exato vs. linear, sob o valor-herói (ou aviso de que
+# os períodos só valem p/ pêndulo livre, quando há atrito/força).
 read_dpct = fig.text(_READ_CX[1], 0.898, '', ha='center', va='top',
                      fontfamily='monospace', fontsize=7.2, fontweight='bold', color=MINT)
 # divisórias finas entre os segmentos (linguagem de painel de instrumento)
@@ -710,9 +712,9 @@ register_ctrl(status_txt, 'text', (CTRL_L, y_btn), anchor=y_btn, offset=BTN_H + 
 
 # Dica de atalhos de teclado (rodapé da coluna esquerda, bem discreto)
 fig.text(MARGIN_L, 0.013,
-         'atalhos:  [espaço] pausar · [r] reset · [e/f] painéis · [c] comparar · [v] velocidade · '
-         '[b] ressonância · [k] Poincaré · [j] bifurcação · [a] período×amplitude · [m] música · '
-         '[s] PNG · [d] CSV · [←/→] passo',
+         'atalhos:  [h] ajuda · [espaço] pausar · [r] reset · [e/f] painéis · [c] comparar · '
+         '[v] velocidade · [b] ressonância · [k] Poincaré · [j] bifurcação · [a] período×amplitude · '
+         '[m] música · [s] PNG · [d] CSV · [←/→] passo',
          fontsize=7, color=MUTED, va='bottom', ha='left')
 
 # Separadores
@@ -738,13 +740,24 @@ def _update_sub():
     # aparecem ao lado dos sliders). Só formata; o cálculo está em compute().
     dpct = (Tp_amp / Tp_lin - 1.0) * 100.0
     w0   = np.sqrt(state['g'] / state['L'])
+    # T₀/T exato/T medido são definidos para o pêndulo LIVRE; com atrito (γ>0) ou
+    # força (A>0) viram só referência — esmaecemos e zeramos o "medido" (não há
+    # período limpo). ω₀ = √(g/L) continua valendo sempre.
+    free = (state['gamma'] == 0.0 and state['A'] == 0.0)
+    for key in ('lin', 'ex', 'med'):
+        la, va, lc, vc = read_artists[key]
+        la.set_color(lc if free else MUTED); va.set_color(vc if free else MUTED)
     read_lin.set_text('T₀ %.3f s' % Tp_lin)
     read_ex.set_text('T %.3f s' % Tp_amp)
-    read_med.set_text('T —' if Tp_med is None else 'T %.3f s' % Tp_med)
+    read_med.set_text(('T %.3f s' % Tp_med) if (free and Tp_med is not None) else 'T —')
     read_w0.set_text('ω₀ %.2f' % w0)
-    arrow = '▲' if dpct >= 0 else '▼'
-    read_dpct.set_text('%s %+.1f%%  vs. linear' % (arrow, dpct))
-    read_dpct.set_color(MINT if dpct >= 0 else RED)
+    if free:
+        arrow = '▲' if dpct >= 0 else '▼'
+        read_dpct.set_text('%s %+.1f%%  vs. linear' % (arrow, dpct))
+        read_dpct.set_color(MINT if dpct >= 0 else RED)
+    else:
+        read_dpct.set_text('referência: pêndulo livre')
+        read_dpct.set_color(MUTED2)
     # Leitura da força (canto sup. direito): razão Ω/ω₀ e aviso de ressonância
     # quando Ω está a menos de 8% de ω₀ com a força ligada.
     ratio = state['wd'] / w0
@@ -1386,6 +1399,66 @@ def show_period_amplitude(event=None):
         pass
     fig.canvas.draw_idle()
 
+# ── Ajuda / controles ([h]) ──────────────────────────────────────────────────
+# Janela separada (como as de análise) em vez de sobreposição no canvas: assim
+# não interfere no blitting da animação principal. Guardamos o nº da figura pra
+# não abrir várias cópias ao apertar [h] repetido.
+_help = {'num': None}
+_HELP_ROWS = [
+    ('SIMULAÇÃO', None),
+    ('espaço / p', 'pausar / continuar'),
+    ('r',          'reset (volta aos padrões)'),
+    ('← / →',      'avançar / voltar quadro a quadro (pausado)'),
+    ('v',          'velocidade da animação (0,5× / 1× / 2×)'),
+    ('PAINÉIS & COMPARAÇÃO', None),
+    ('e / f',      'minimizar energia×tempo / espaço de fases'),
+    ('c',          'comparar com a aproximação linear (fantasma)'),
+    ('ANÁLISE (abre janela)', None),
+    ('b',          'curva de ressonância'),
+    ('k',          'seção de Poincaré'),
+    ('j',          'diagrama de bifurcação'),
+    ('a',          'período × amplitude'),
+    ('SAÍDA & EXTRAS', None),
+    ('s / d',      'salvar PNG / exportar CSV'),
+    ('m',          'música de fundo (escolhe um arquivo)'),
+    ('h',          'esta ajuda'),
+]
+
+def show_help(event=None):
+    """[h] Janela com todos os controles — mais legível que a dica do rodapé."""
+    if _help['num'] is not None and plt.fignum_exists(_help['num']):
+        return                              # já está aberta
+    hfig = plt.figure(figsize=(6.6, 6.4), facecolor=BG)
+    _help['num'] = hfig.number
+    try:
+        hfig.canvas.manager.set_window_title('Controles — Pêndulo v8')
+    except Exception:
+        pass
+    hfig.text(0.07, 0.95, 'CONTROLES', color=AMBER, fontsize=15, fontweight='bold',
+              fontfamily=DISPLAY, va='top')
+    hfig.text(0.07, 0.915, 'atalhos de teclado do Pêndulo Simples',
+              color=MUTED2, fontsize=8.5, fontfamily=DISPLAY, va='top')
+    y = 0.855
+    for key, desc in _HELP_ROWS:
+        if desc is None:                    # cabeçalho de seção
+            hfig.text(0.07, y, key, color=TEAL, fontsize=8.5, fontweight='bold',
+                      fontfamily=DISPLAY, va='center')
+            y -= 0.046
+        else:
+            hfig.text(0.10, y, key, color=GOLD, fontsize=9.5, fontfamily='monospace',
+                      va='center')
+            hfig.text(0.38, y, desc, color=WHITE, fontsize=9, va='center')
+            y -= 0.042
+    hfig.text(0.07, 0.055,
+              'Sliders ajustam L, m, θ₀, g, γ (atrito), A (força) e Ω (freq. forçante).\n'
+              'Botões Lua / Marte / Terra / Júpiter trocam a gravidade.',
+              color=MUTED, fontsize=8.5, va='bottom')
+    try:
+        hfig.show()
+    except Exception:
+        pass
+    fig.canvas.draw_idle()
+
 # ── Música de fundo (PyQt5.QtMultimedia; toca em loop) ───────────────────────
 _music = {'player': None, 'playlist': None, 'on': False, 'name': ''}
 
@@ -1450,6 +1523,8 @@ def on_key(event):
         show_bifurcation()
     elif k == 'a':
         show_period_amplitude()
+    elif k == 'h':
+        show_help()
     elif k == 'm':
         toggle_music()
     elif k in ('right', 'left'):
