@@ -1,10 +1,10 @@
-# 🔭 mechanics-code
+#  mechanics-code
 
 Simulações de mecânica clássica desenvolvidas em Python com `numpy` e `matplotlib`.
 
 ---
 
-## 📁 Estrutura
+##  Estrutura
 
 ```
 mechanics-code/
@@ -20,7 +20,7 @@ mechanics-code/
 
 ---
 
-## 🌀 Pêndulo Simples
+##  Pêndulo Simples
 
 Simulação animada de um pêndulo com visualização da troca de energia mecânica,
 integração numérica por **Runge-Kutta de 4ª ordem (RK4)** e espaço de fases (θ × ω).
@@ -52,7 +52,7 @@ pip install numpy matplotlib PyQt5
 python pendulo-simples/pendulo_v8.py
 ```
 
-### ✨ Recursos da v8
+###  Recursos da v8
 
 - **Comparação linear × não-linear:** sobreposição "fantasma" do pêndulo de
   pequenas oscilações na simulação e no espaço de fases (tecla `c`) — torna
@@ -80,7 +80,7 @@ python pendulo-simples/pendulo_v8.py
 - **Atrito viscoso (γ)**, **energia dissipada (ΔE)**, **painéis minimizáveis** e
   **presets de gravidade** com realce do ativo (herdados do v7).
 
-### ⌨️ Atalhos de teclado
+###  Atalhos de teclado
 
 | Tecla | Ação |
 |---|---|
@@ -154,7 +154,7 @@ amplitude, o movimento pode ficar **caótico**.
 
 ---
 
-## ⚙️ Requisitos
+## Requisitos
 
 - Python 3.10+
 - numpy
